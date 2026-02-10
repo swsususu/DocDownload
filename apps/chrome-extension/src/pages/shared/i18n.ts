@@ -28,6 +28,7 @@ export const i18n = createI18n({
       'general.table_with_non_phrasing_content.placeholder': 'Select handling',
       'general.table_with_non_phrasing_content.filtered': 'Filtered',
       'general.table_with_non_phrasing_content.to_html': 'To HTML',
+      'general.table_to_html': 'Convert tables to HTML',
       'general.text_highlight':
         'Preserve text highlighting (font color, font background color)',
       'general.flat_grid': 'Flat Column Layout',
@@ -66,6 +67,7 @@ export const i18n = createI18n({
       'general.table_with_non_phrasing_content.placeholder': '选择处理方式',
       'general.table_with_non_phrasing_content.filtered': '过滤块级内容',
       'general.table_with_non_phrasing_content.to_html': '转换为 HTML',
+      'general.table_to_html': '表格转换为 HTML',
       'general.text_highlight': '保留文本高亮（字体颜色、字体背景颜色）',
       'general.flat_grid': '扁平分栏',
       'download.file_with_unique_name': '图片和图表文件使用 UUID 命名',

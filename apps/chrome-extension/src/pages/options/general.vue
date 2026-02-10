@@ -37,6 +37,7 @@ const schema = z.object({
   [SettingKey.Locale]: z.enum(availableLocales.value),
   [SettingKey.Theme]: z.enum(Theme),
   [SettingKey.TableWithNonPhrasingContent]: z.enum(TableWithNonPhrasingContent),
+  [SettingKey.TableToHtml]: z.boolean(),
   [SettingKey.TextHighlight]: z.boolean(),
   [SettingKey.FlatGrid]: z.boolean(),
 })
@@ -55,6 +56,7 @@ watch(query.data, newValues => {
         SettingKey.Locale,
         SettingKey.Theme,
         SettingKey.TableWithNonPhrasingContent,
+        SettingKey.TableToHtml,
         SettingKey.TextHighlight,
         SettingKey.FlatGrid,
       ]),
@@ -198,6 +200,28 @@ const onSubmit = handleSubmit.withControlled(async values => {
                 </SelectGroup>
               </SelectContent>
             </Select>
+          </Field>
+        </VeeField>
+        <VeeField
+          v-slot="{ field, errors }"
+          :name="`[${SettingKey.TableToHtml}]`"
+        >
+          <Field orientation="horizontal" :data-invalid="!!errors.length">
+            <FieldContent>
+              <FieldLabel for="form-vee-general-table-to-html">{{
+                t('general.table_to_html')
+              }}</FieldLabel>
+              <FieldError v-if="errors.length" :errors="errors" />
+            </FieldContent>
+            <Skeleton v-if="query.isPending.value" class="h-9 w-40" />
+            <Switch
+              v-else
+              id="form-vee-general-table-to-html"
+              :name="field.name"
+              :model-value="field.value"
+              :aria-invalid="!!errors.length"
+              @update:model-value="field.onChange"
+            />
           </Field>
         </VeeField>
         <VeeField

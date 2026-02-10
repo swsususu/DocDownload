@@ -45,10 +45,13 @@ declare module 'mdast' {
   }
 
   interface TableData {
+    type?: BlockType.TABLE | BlockType.GRID | undefined
+    colWidths?: number[]
     invalid?: boolean
   }
 
   interface TableCellData {
+    width?: number
     invalidChildren?: mdast.Nodes[]
   }
 
@@ -278,6 +281,10 @@ interface Grid extends Block<GridColumn> {
 
 interface GridColumn extends Block {
   type: BlockType.GRID_COLUMN
+  snapshot: {
+    type: BlockType.GRID_COLUMN
+    width_ratio?: number
+  }
 }
 
 interface Callout extends Block {
@@ -1347,7 +1354,11 @@ export class Transformer {
       }
       case BlockType.TABLE:
       case BlockType.GRID: {
-        let table: mdast.Table = { type: 'table', children: [] }
+        let table: mdast.Table = {
+          type: 'table',
+          children: [],
+          data: { type: block.type },
+        }
 
         table = this.transformParentBlock(
           block,
@@ -1355,7 +1366,19 @@ export class Transformer {
           nodes => {
             const tableCells = nodes.filter(isTableCell)
 
+            const widthCells = tableCells.filter(
+              (cell): cell is mdast.TableCell & { data: { width: number } } =>
+                typeof cell.data?.width === 'number',
+            )
+            const colWidths =
+              block.type === BlockType.GRID &&
+              widthCells.length === tableCells.length
+                ? widthCells.map(cell => cell.data.width)
+                : undefined
+
             table.data = {
+              type: block.type,
+              ...(colWidths ? { colWidths } : {}),
               invalid: tableCells.some(cell => cell.data?.invalidChildren),
             }
 
@@ -1381,7 +1404,13 @@ export class Transformer {
       }
       case BlockType.CELL:
       case BlockType.GRID_COLUMN: {
-        const cell: mdast.TableCell = { type: 'tableCell', children: [] }
+        const cell: mdast.TableCell = {
+          type: 'tableCell',
+          children: [],
+          ...(block.type === BlockType.GRID_COLUMN
+            ? { data: { width: block.snapshot.width_ratio } }
+            : {}),
+        }
 
         return this.transformParentBlock(
           block,

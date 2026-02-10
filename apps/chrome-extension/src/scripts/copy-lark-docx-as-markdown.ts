@@ -7,6 +7,7 @@ import { confirm } from '../common/notification'
 import { reportBug } from '../common/issue'
 import {
   transformInvalidTablesToHtml,
+  transformTablesToHtml,
   transformMentionUsers,
 } from '../common/utils'
 import {
@@ -80,6 +81,7 @@ const main = async () => {
 
   const settings = await getSettings([
     SettingKey.TableWithNonPhrasingContent,
+    SettingKey.TableToHtml,
     SettingKey.TextHighlight,
     SettingKey.FlatGrid,
   ])
@@ -111,6 +113,12 @@ const main = async () => {
     TableWithNonPhrasingContent.ToHTML
   ) {
     transformInvalidTablesToHtml(invalidTables, {
+      allowDangerousHtml: true,
+    })
+  }
+
+  if (settings[SettingKey.TableToHtml]) {
+    transformTablesToHtml(root, {
       allowDangerousHtml: true,
     })
   }

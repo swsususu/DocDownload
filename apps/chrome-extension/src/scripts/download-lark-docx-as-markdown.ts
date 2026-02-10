@@ -11,6 +11,7 @@ import { legacyFileSave } from '../common/legacy'
 import { reportBug } from '../common/issue'
 import {
   transformInvalidTablesToHtml,
+  transformTablesToHtml,
   transformMentionUsers,
   UniqueFileName,
   withSignal,
@@ -546,6 +547,7 @@ const main = async (options: { signal?: AbortSignal } = {}) => {
   const settings = await getSettings([
     SettingKey.DownloadMethod,
     SettingKey.TableWithNonPhrasingContent,
+    SettingKey.TableToHtml,
     SettingKey.TextHighlight,
     SettingKey.DownloadFileWithUniqueName,
     SettingKey.FlatGrid,
@@ -582,6 +584,12 @@ const main = async (options: { signal?: AbortSignal } = {}) => {
         TableWithNonPhrasingContent.ToHTML
       ) {
         transformInvalidTablesToHtml(invalidTables, {
+          allowDangerousHtml: true,
+        })
+      }
+
+      if (settings[SettingKey.TableToHtml]) {
+        transformTablesToHtml(root, {
           allowDangerousHtml: true,
         })
       }
@@ -652,6 +660,12 @@ const main = async (options: { signal?: AbortSignal } = {}) => {
         TableWithNonPhrasingContent.ToHTML
       ) {
         transformInvalidTablesToHtml(invalidTables, {
+          allowDangerousHtml: true,
+        })
+      }
+
+      if (settings[SettingKey.TableToHtml]) {
+        transformTablesToHtml(root, {
           allowDangerousHtml: true,
         })
       }

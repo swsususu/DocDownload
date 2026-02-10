@@ -23,6 +23,7 @@ export const useSettings = <
     | SettingKey.Theme
     | SettingKey.DownloadMethod
     | SettingKey.TableWithNonPhrasingContent
+    | SettingKey.TableToHtml
     | SettingKey.TextHighlight
     | SettingKey.DownloadFileWithUniqueName
     | SettingKey.FlatGrid,
@@ -43,6 +44,7 @@ export const useSettings = <
       SettingKey.Theme,
       SettingKey.DownloadMethod,
       SettingKey.TableWithNonPhrasingContent,
+      SettingKey.TableToHtml,
       SettingKey.TextHighlight,
       SettingKey.DownloadFileWithUniqueName,
       SettingKey.FlatGrid,
