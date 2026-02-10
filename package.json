@@ -4,6 +4,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
+    "watch": "turbo watch build",
     "build": "turbo run build",
     "type-check": "turbo run type-check",
     "test": "turbo run test",
