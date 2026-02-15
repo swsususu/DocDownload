@@ -40,7 +40,7 @@ Cloud Document Converter 是一个浏览器扩展， 支持下载、复制飞书
 | 公示                  | ✅            | Math Block                        |
 | 高亮块                | ❌            | Blockquote                        |
 | 图表 (流程图、UML 图) | ❌            | Image（仅下载支持）               |
-| 分栏                  | ❌            | _分栏内容会被扁平化_              |
+| 分栏                  | ✅            | Flatten/Table/HTML               |
 | 多维表格              | 待定         |                                   |
 | 群名片                | 待定         |                                   |
 | 文件                  | ❌            | Link（仅下载支持）                |
