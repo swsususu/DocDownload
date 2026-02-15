@@ -11,12 +11,16 @@ import { legacyFileSave } from '../common/legacy'
 import { reportBug } from '../common/issue'
 import {
   transformInvalidTablesToHtml,
-  transformTablesToHtml,
+  transformGridToHtml,
   transformMentionUsers,
   UniqueFileName,
   withSignal,
 } from '../common/utils'
-import { getSettings, TableWithNonPhrasingContent } from '../common/settings'
+import {
+  getSettings,
+  TableWithNonPhrasingContent,
+  Grid,
+} from '../common/settings'
 import { DownloadMethod, SettingKey } from '@/common/settings'
 
 const uniqueFileName = new UniqueFileName()
@@ -547,10 +551,9 @@ const main = async (options: { signal?: AbortSignal } = {}) => {
   const settings = await getSettings([
     SettingKey.DownloadMethod,
     SettingKey.TableWithNonPhrasingContent,
-    SettingKey.TableToHtml,
+    SettingKey.Grid,
     SettingKey.TextHighlight,
     SettingKey.DownloadFileWithUniqueName,
-    SettingKey.FlatGrid,
   ])
 
   const { root, images, files, invalidTables, mentionUsers } =
@@ -559,7 +562,7 @@ const main = async (options: { signal?: AbortSignal } = {}) => {
       diagram: true,
       file: true,
       highlight: settings[SettingKey.TextHighlight],
-      flatGrid: settings[SettingKey.FlatGrid],
+      flatGrid: settings[SettingKey.Grid] === Grid.Flatten,
     })
 
   await transformMentionUsers(mentionUsers)
@@ -588,8 +591,8 @@ const main = async (options: { signal?: AbortSignal } = {}) => {
         })
       }
 
-      if (settings[SettingKey.TableToHtml]) {
-        transformTablesToHtml(root, {
+      if (settings[SettingKey.Grid] === Grid.ToHTML) {
+        transformGridToHtml(root, {
           allowDangerousHtml: true,
         })
       }
@@ -664,8 +667,8 @@ const main = async (options: { signal?: AbortSignal } = {}) => {
         })
       }
 
-      if (settings[SettingKey.TableToHtml]) {
-        transformTablesToHtml(root, {
+      if (settings[SettingKey.Grid] === Grid.ToHTML) {
+        transformGridToHtml(root, {
           allowDangerousHtml: true,
         })
       }

@@ -7,13 +7,14 @@ import { confirm } from '../common/notification'
 import { reportBug } from '../common/issue'
 import {
   transformInvalidTablesToHtml,
-  transformTablesToHtml,
+  transformGridToHtml,
   transformMentionUsers,
 } from '../common/utils'
 import {
   getSettings,
   SettingKey,
   TableWithNonPhrasingContent,
+  Grid,
 } from '../common/settings'
 
 const enum TranslationKey {
@@ -81,14 +82,13 @@ const main = async () => {
 
   const settings = await getSettings([
     SettingKey.TableWithNonPhrasingContent,
-    SettingKey.TableToHtml,
+    SettingKey.Grid,
     SettingKey.TextHighlight,
-    SettingKey.FlatGrid,
   ])
 
   const { root, images, invalidTables, mentionUsers } = docx.intoMarkdownAST({
     highlight: settings[SettingKey.TextHighlight],
-    flatGrid: settings[SettingKey.FlatGrid],
+    flatGrid: settings[SettingKey.Grid] === Grid.Flatten,
   })
 
   await transformMentionUsers(mentionUsers)
@@ -117,8 +117,8 @@ const main = async () => {
     })
   }
 
-  if (settings[SettingKey.TableToHtml]) {
-    transformTablesToHtml(root, {
+  if (settings[SettingKey.Grid] === Grid.ToHTML) {
+    transformGridToHtml(root, {
       allowDangerousHtml: true,
     })
   }

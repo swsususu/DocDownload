@@ -135,7 +135,7 @@ export const transformInvalidTablesToHtml = (
 const isParent = (node: mdast.Node): node is mdast.Parent =>
   'children' in node && Array.isArray(node.children)
 
-export const transformTablesToHtml = (
+export const transformGridToHtml = (
   root: mdast.Root,
   options: { allowDangerousHtml: boolean } = { allowDangerousHtml: false },
 ): void => {
@@ -177,20 +177,17 @@ export const transformTablesToHtml = (
     for (let index = 0; index < node.children.length; index++) {
       const child = node.children[index]
       const tableType = (child.data as { type?: string } | undefined)?.type
-      if (
-        child.type === 'table' &&
-        (tableType === 'grid' || tableType === 'table')
-      ) {
-        const widths = extractColumnWidths(child)
+      if (child.type === 'table' && tableType === 'grid') {
+        const colWidths = extractColumnWidths(child)
         const hast = toHast(child, {
           allowDangerousHtml: options.allowDangerousHtml,
         }) as HastNode
         const tableElement = findTableElement(hast)
-        if (tableElement && widths) {
+        if (tableElement && colWidths) {
           const colgroup: HastNode = {
             type: 'element',
             tagName: 'colgroup',
-            children: widths.map(width => ({
+            children: colWidths.map(width => ({
               type: 'element',
               tagName: 'col',
               properties: {

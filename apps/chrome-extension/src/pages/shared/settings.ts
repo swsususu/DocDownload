@@ -23,10 +23,9 @@ export const useSettings = <
     | SettingKey.Theme
     | SettingKey.DownloadMethod
     | SettingKey.TableWithNonPhrasingContent
-    | SettingKey.TableToHtml
+    | SettingKey.Grid
     | SettingKey.TextHighlight
-    | SettingKey.DownloadFileWithUniqueName
-    | SettingKey.FlatGrid,
+    | SettingKey.DownloadFileWithUniqueName,
 >(
   options: { keys?: Key[] } = {},
 ): {
@@ -44,10 +43,9 @@ export const useSettings = <
       SettingKey.Theme,
       SettingKey.DownloadMethod,
       SettingKey.TableWithNonPhrasingContent,
-      SettingKey.TableToHtml,
+      SettingKey.Grid,
       SettingKey.TextHighlight,
       SettingKey.DownloadFileWithUniqueName,
-      SettingKey.FlatGrid,
     ] as Key[],
   } = options
 
