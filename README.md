@@ -2,16 +2,25 @@
   <p align="center">
    <img width="150" height="150" src="apps/chrome-extension/design/logo.svg" alt="Logo">
   </p>
-	<h1 align="center"><b>Cloud Document Converter</b></h1>
+	<h1 align="center"><b>DocDownload</b></h1>
 </p>
 
-Cloud Document Converter is a browser extension that supports downloading/copying Lark Doc as Markdown.
+DocDownload is a browser extension that supports downloading/copying Lark Doc as Markdown. It is a fork of [whale4113/cloud-document-converter](https://github.com/whale4113/cloud-document-converter) (MIT).
 
 **English** · [简体中文](./README_ZH.md)
 
 # Install
 
-Install Cloud Document Converter from [Chrome Web Store](https://chromewebstore.google.com/detail/cloud-document-converter/ehkomhhcinhikfddnmklbloahaakploh), [Microsoft Edge Store](https://microsoftedge.microsoft.com/addons/detail/pcjebkebnehplnpkpnhipagefaffiopp), and [Firefox Add-ons Store](https://addons.mozilla.org/addon/cloud-document-converter).
+DocDownload is not published to any browser extension store. Build it from source and load it as an unpacked extension:
+
+```shell
+pnpm install
+pnpm run build
+```
+
+Then open `chrome://extensions` (or `edge://extensions`), enable **Developer mode**, click **Load unpacked**, and select `apps/chrome-extension/dist`.
+
+> The "Cloud Document Converter" listings on the Chrome Web Store, Microsoft Edge Add-ons and Firefox Add-ons belong to the original project, not to this fork.
 
 # Features
 
@@ -71,11 +80,13 @@ Indent and Align: To be determined
 
 If you are interested in fixing issues and contributing directly to the code base, please see the document [How to Contribute](./contributing.md).
 
-# Support me
+# Credits and License
 
-If you like this project, you are welcome to buy me a cup of coffee! Your support will help me continue to improve and maintain this project.
+DocDownload is a fork of [Cloud Document Converter](https://github.com/whale4113/cloud-document-converter) by **Junji Lu** ([@whale4113](https://github.com/whale4113)) and its contributors. Most of the code, including the Lark block-to-Markdown conversion, the extension shell and the batch download workbench, was written by the original author and contributors. If you find this useful, please consider supporting [the original project](https://github.com/whale4113/cloud-document-converter).
 
-[Buy me a coffee ☕](https://lujunji.vercel.app/about)
+This project is released under the [MIT License](./LICENSE), which keeps the original copyright notice. See [NOTICE.md](./NOTICE.md) for details on attribution and the list of changes made in this fork.
+
+DocDownload is an independent fork and is not affiliated with or endorsed by the original author.
 
 # Disclaimer
 

@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repo is a pnpm + Turborepo monorepo for **Cloud Document Converter** (a browser extension that converts Lark cloud docs to Markdown).
+This repo is a pnpm + Turborepo monorepo for **DocDownload** (a browser extension that converts Lark cloud docs to Markdown).
 
 - `apps/chrome-extension/`: Vue-based extension (UI in `src/pages/`, shared UI in `src/components/`, scripts in `src/scripts/`).
   - The options page is at `pages/options.html`, the popup menu is at `pages/popup.html`, and the Batch Download workbench is at `pages/batch-download.html` (UI in `src/pages/batch-download/`).

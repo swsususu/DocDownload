@@ -1,8 +1,8 @@
-# Contributing to Cloud Document Converter
+# Contributing to DocDownload
 
-There are many ways to contribute to the Cloud Document Converter project: logging bugs, submitting pull requests, reporting issues, and creating suggestions.
+There are many ways to contribute to the DocDownload project: logging bugs, submitting pull requests, reporting issues, and creating suggestions.
 
-After cloning and building the repo, check out the [issues list](https://github.com/whale4113/cloud-document-converter/issues). Issues labeled [`help wanted`](https://github.com/whale4113/cloud-document-converter/issues?q=is:issue+is:open+label:%22help+wanted%22+) are good issues to submit a PR for. Issues labeled [`good first issue`](https://github.com/whale4113/cloud-document-converter/issues?q=is:issue+is:open+label:%22good+first+issue%22+) are great candidates to pick up if you are in the code for the first time. If you are contributing significant changes, or if the issue is already assigned to a specific month milestone, please discuss with the assignee of the issue first before starting to work on the issue.
+After cloning and building the repo, check out the [issues list](https://github.com/swsususu/DocDownload/issues). Issues labeled [`help wanted`](https://github.com/swsususu/DocDownload/issues?q=is:issue+is:open+label:%22help+wanted%22+) are good issues to submit a PR for. Issues labeled [`good first issue`](https://github.com/swsususu/DocDownload/issues?q=is:issue+is:open+label:%22good+first+issue%22+) are great candidates to pick up if you are in the code for the first time. If you are contributing significant changes, or if the issue is already assigned to a specific month milestone, please discuss with the assignee of the issue first before starting to work on the issue.
 
 ## Prerequisites
 

@@ -2,16 +2,25 @@
   <p align="center">
    <img width="150" height="150" src="apps/chrome-extension/design/logo.svg" alt="Logo">
   </p>
-	<h1 align="center"><b>Cloud Document Converter</b></h1>
+	<h1 align="center"><b>DocDownload</b></h1>
 </p>
 
-Cloud Document Converter 是一个浏览器扩展， 支持下载、复制飞书云文档为 Markdown。
+DocDownload 是一个浏览器扩展， 支持下载、复制飞书云文档为 Markdown。它是 [whale4113/cloud-document-converter](https://github.com/whale4113/cloud-document-converter)（MIT）的分支。
 
 [English](./README.md) · **简体中文**
 
 # 安装
 
-从 [Chrome 应用商店](https://chromewebstore.google.com/detail/cloud-document-converter/ehkomhhcinhikfddnmklbloahaakploh)、[Microsoft Edge 加载项](https://microsoftedge.microsoft.com/addons/detail/pcjebkebnehplnpkpnhipagefaffiopp) 和 [Firefox 附加组件](https://addons.mozilla.org/addon/cloud-document-converter) 安装 Cloud Document Converter。
+DocDownload 没有上架任何浏览器扩展商店，请从源码构建后以“加载已解压的扩展程序”方式安装：
+
+```shell
+pnpm install
+pnpm run build
+```
+
+然后打开 `chrome://extensions`（或 `edge://extensions`），开启**开发者模式**，点击**加载已解压的扩展程序**，选择 `apps/chrome-extension/dist` 目录。
+
+> Chrome 应用商店、Microsoft Edge 加载项、Firefox 附加组件中的 “Cloud Document Converter” 属于原项目，与本分支无关。
 
 # 功能
 
@@ -71,11 +80,13 @@ Cloud Document Converter 是一个浏览器扩展， 支持下载、复制飞书
 
 如果你有兴趣修复问题并直接为代码库做出贡献，请参阅文档 [如何贡献](./contributing.md)。
 
-# 支持我
+# 致谢与许可
 
-如果你喜欢这个项目，欢迎你请我喝杯咖啡！你的支持将帮助我继续改进和维护这个项目。
+DocDownload 是 **Junji Lu**（[@whale4113](https://github.com/whale4113)）及其贡献者的 [Cloud Document Converter](https://github.com/whale4113/cloud-document-converter) 的分支。包括飞书文档块到 Markdown 的转换、扩展框架、批量下载工作台在内的大部分代码由原作者及贡献者编写。如果这个项目对你有用，也请考虑支持[原项目](https://github.com/whale4113/cloud-document-converter)。
 
-[请我喝咖啡 ☕](https://lujunji.vercel.app/about)
+本项目以 [MIT 许可证](./LICENSE) 发布，并保留原版权声明。关于署名及本分支的改动清单，详见 [NOTICE.md](./NOTICE.md)。
+
+DocDownload 是独立分支，与原作者无隶属关系，也未获其背书。
 
 # 免责声明
 

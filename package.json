@@ -2,6 +2,14 @@
   "name": "@dolphin/monorepo",
   "description": "Convert lark cloud documents to markdown",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/swsususu/DocDownload.git"
+  },
+  "homepage": "https://github.com/swsususu/DocDownload#readme",
+  "bugs": {
+    "url": "https://github.com/swsususu/DocDownload/issues"
+  },
   "type": "module",
   "scripts": {
     "watch": "turbo watch build",
@@ -21,7 +29,7 @@
     "lark",
     "markdown"
   ],
-  "author": "Junji Lu",
+  "author": "swsususu",
   "devDependencies": {
     "@playwright/test": "catalog:tools",
     "@changesets/changelog-github": "catalog:cli",

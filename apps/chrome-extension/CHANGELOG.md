@@ -1,5 +1,18 @@
 # @dolphin/chrome-extension
 
+## 1.12.0
+
+First release of **DocDownload**, a fork of [Cloud Document Converter](https://github.com/whale4113/cloud-document-converter) 1.11.0 by Junji Lu. Entries for older versions below were written by the original author and contributors. See [NOTICE.md](../../NOTICE.md).
+
+### Minor Changes
+
+- Rename the extension to DocDownload and point help/feedback links to https://github.com/swsususu/DocDownload.
+
+### Patch Changes
+
+- Triggering "Download as Markdown" while a download is in progress no longer opens another save dialog (upstream #122).
+- Updated dependencies: `@dolphin/lark@2.6.7`.
+
 ## 1.11.0
 
 ### Minor Changes

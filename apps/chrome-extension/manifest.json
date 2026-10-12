@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Cloud Document Converter",
+  "name": "DocDownload",
   "description": "Convert lark cloud documents to markdown",
   "icons": {
     "16": "images/icon-16.png",

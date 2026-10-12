@@ -1,5 +1,13 @@
 # @dolphin/lark
 
+## 2.6.7
+
+### Patch Changes
+
+- Iframe blocks only emit `http(s)` urls and HTML-escape the `src`; text highlight colors are validated before being written into `style` (upstream #144).
+- Whitespace at the edge of bold/italic/delete runs is moved outside the markers and paragraph edge whitespace is trimmed, so output no longer contains `&#x20;` / `&#x7B49;` (upstream #94).
+- Image and link urls containing parentheses are written as `<...>` destinations instead of `\(` `\)` (upstream #112).
+
 ## 2.6.6
 
 ### Patch Changes

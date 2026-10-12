@@ -682,41 +682,55 @@ const main = async (options: { signal?: AbortSignal } = {}) => {
   }
 }
 
+// The script is injected again on every click. A flag on `window` (shared by
+// all injections in the page's MAIN world) prevents a second run from opening
+// another save dialog while one is still active (#122).
+const RUNNING_FLAG = '__cdcDownloadLarkDocxRunning'
+const runningWindow = window as unknown as Record<string, boolean | undefined>
+
 let controller = new AbortController()
-main({
-  signal: controller.signal,
-})
-  .then(() => {
-    Toast.success({
-      content: i18next.t(TranslationKey.DOWNLOAD_COMPLETE),
-    })
+if (runningWindow[RUNNING_FLAG]) {
+  controller.abort()
+} else {
+  runningWindow[RUNNING_FLAG] = true
+
+  main({
+    signal: controller.signal,
   })
-  .catch((error: unknown) => {
-    const aborted =
-      error instanceof Error &&
-      (error.name === 'AbortError' || error.message === DOWNLOAD_ABORTED)
-
-    if (aborted) {
-      controller.abort()
-    } else {
-      Toast.error({
-        key: ToastKey.REPORT_BUG,
-        content: String(error),
-        actionText: i18next.t(CommonTranslationKey.CONFIRM_REPORT_BUG, {
-          ns: Namespace.COMMON,
-        }),
-        duration: Minute,
-        onActionClick: () => {
-          reportBug(error)
-
-          Toast.remove(ToastKey.REPORT_BUG)
-        },
+    .then(() => {
+      Toast.success({
+        content: i18next.t(TranslationKey.DOWNLOAD_COMPLETE),
       })
-    }
-  })
-  .finally(() => {
-    Toast.remove(ToastKey.DOWNLOADING)
+    })
+    .catch((error: unknown) => {
+      const aborted =
+        error instanceof Error &&
+        (error.name === 'AbortError' || error.message === DOWNLOAD_ABORTED)
 
-    // @ts-expect-error remove reference
-    controller = null
-  })
+      if (aborted) {
+        controller.abort()
+      } else {
+        Toast.error({
+          key: ToastKey.REPORT_BUG,
+          content: String(error),
+          actionText: i18next.t(CommonTranslationKey.CONFIRM_REPORT_BUG, {
+            ns: Namespace.COMMON,
+          }),
+          duration: Minute,
+          onActionClick: () => {
+            reportBug(error)
+
+            Toast.remove(ToastKey.REPORT_BUG)
+          },
+        })
+      }
+    })
+    .finally(() => {
+      Toast.remove(ToastKey.DOWNLOADING)
+
+      runningWindow[RUNNING_FLAG] = false
+
+      // @ts-expect-error remove reference
+      controller = null
+    })
+}

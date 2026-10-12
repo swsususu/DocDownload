@@ -32,9 +32,7 @@ enum Label {
 function generateIssueUrl(issue: Issue): string {
   const { title, body, labels = [], template } = issue
 
-  const url = new URL(
-    'https://github.com/whale4113/cloud-document-converter/issues/new',
-  )
+  const url = new URL('https://github.com/swsususu/DocDownload/issues/new')
 
   if (title) url.searchParams.set('title', title)
   if (body) url.searchParams.set('body', body)

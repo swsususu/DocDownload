@@ -49,5 +49,5 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          body: Please refer to [CHANGELOG.md](https://github.com/lujunji4113/cloud-document-converter/blob/main/apps/chrome-extension/CHANGELOG.md) for details.
+          body: Please refer to [CHANGELOG.md](https://github.com/swsususu/DocDownload/blob/main/apps/chrome-extension/CHANGELOG.md) for details.
           files: apps/chrome-extension/web-ext-artifacts/*.zip

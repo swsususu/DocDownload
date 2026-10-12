@@ -24,6 +24,11 @@ import {
   isTableCell,
   isListItemContent,
 } from './utils/mdast'
+import {
+  handlers,
+  hoistEdgeWhitespace,
+  trimEdgeWhitespace,
+} from './utils/markdown'
 import { resolveFileDownloadUrl } from './file'
 import { isString } from 'es-toolkit/compat'
 import { escape } from 'es-toolkit/compat'
@@ -547,15 +552,45 @@ interface IframeBlock extends Block {
   }
 }
 
+/**
+ * @description Only http(s) URLs are allowed to be embedded. Anything else
+ * (e.g. `javascript:`, `data:`) is document-controlled input and must not end
+ * up in the generated Markdown.
+ */
+export const isSafeHttpUrl = (url: string): boolean => {
+  try {
+    const { protocol } = new URL(url)
+
+    return protocol === 'http:' || protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+const SAFE_CSS_COLOR =
+  /^(?:#[0-9a-f]{3,8}|(?:rgb|hsl)a?\(\s*[\d.%\s,/-]+\)|[a-z]{3,30})$/i
+
+/**
+ * @description Returns the color if it looks like a plain CSS color, otherwise
+ * `inherit`, so that it can be safely interpolated into a `style` attribute.
+ */
+export const toSafeCssColor = (color: string | undefined): string =>
+  color && SAFE_CSS_COLOR.test(color.trim()) ? color.trim() : 'inherit'
+
 const iframeToHTML = (iframe: IframeBlock): mdast.Html | null => {
-  const { height = 4 * OneHundred, component = {} } = iframe.snapshot.iframe
+  const { height: rawHeight, component = {} } = iframe.snapshot.iframe
   const { url } = component
 
-  if (!url) {
+  if (!url || !isSafeHttpUrl(url)) {
     return null
   }
 
-  const html = `<iframe src="${url}" sandbox="allow-scripts allow-same-origin allow-presentation allow-forms allow-popups allow-downloads" allowfullscreen allow="encrypted-media; fullscreen; autoplay" referrerpolicy="strict-origin-when-cross-origin" frameborder="0" style="width: 100%; min-height: ${height.toFixed()}px; border-radius: 8px;"></iframe>`
+  const height =
+    typeof rawHeight === 'number' && Number.isFinite(rawHeight)
+      ? rawHeight
+      : 4 * OneHundred
+
+  const html = `<iframe src="${escape(url)}" sandbox="allow-scripts allow-same-origin allow-presentation allow-forms allow-popups allow-downloads" allowfullscreen allow="encrypted-media; fullscreen; autoplay" referrerpolicy="strict-origin-when-cross-origin" frameborder="0" style="width: 100%; min-height: ${height.toFixed()}px; border-radius: 8px;"></iframe>`
 
   return {
     type: 'html',
@@ -894,7 +929,7 @@ export const transformOperationsToPhrasingContents = (
     }
 
     if (options.highlight && (textHighlight || textHighlightBackground)) {
-      const highlighted = `<span style="color: ${textHighlight ?? 'inherit'}; background-color: ${textHighlightBackground ?? 'inherit'}">${escape(insert)}</span>`
+      const highlighted = `<span style="color: ${toSafeCssColor(textHighlight)}; background-color: ${toSafeCssColor(textHighlightBackground)}">${escape(insert)}</span>`
 
       return {
         type: 'html',
@@ -936,7 +971,9 @@ export const transformOperationsToPhrasingContents = (
     return node
   })
 
-  const contents = mergePhrasingContents(nodes)
+  const contents = trimEdgeWhitespace(
+    hoistEdgeWhitespace(mergePhrasingContents(nodes)),
+  )
 
   return {
     contents,
@@ -1735,6 +1772,7 @@ export class Docx {
   static stringify(root: mdast.Root, options?: Options): string {
     return toMarkdown(root, {
       ...options,
+      handlers: { ...handlers, ...options?.handlers },
       extensions: [
         gfmStrikethroughToMarkdown(),
         gfmTaskListItemToMarkdown(),
