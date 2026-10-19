@@ -1,4 +1,13 @@
 {
+  "extension_name": {
+    "message": "DocDownload"
+  },
+  "extension_description": {
+    "message": "Download and copy Lark / Feishu cloud documents as Markdown"
+  },
+  "script_inject_failed": {
+    "message": "Failed to run on this page. Open the extension popup on the document tab and try again."
+  },
   "download_docx_as_markdown": {
     "message": "Download as Markdown"
   },

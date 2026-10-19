@@ -74,19 +74,50 @@ chrome.contextMenus.onClicked.addListener(({ menuItemId }, tab) => {
   }
 })
 
+interface ExecuteResult {
+  ok: boolean
+  error?: string
+}
+
 chrome.runtime.onMessage.addListener((_message, sender, sendResponse) => {
-  const message = _message as Message
+  const message = _message as Partial<Message> | null | undefined
 
-  const executeScript = async () => {
-    const activeTabs = await chrome.tabs.query({
-      currentWindow: true,
-      active: true,
-    })
+  // Only handle script execution requests; other messages (e.g. batch download) are handled elsewhere
+  if (typeof message?.flag !== 'string') {
+    return false
+  }
+  const flag = message.flag
 
-    const activeTabId = activeTabs.at(0)?.id
+  const executeScript = async (): Promise<ExecuteResult> => {
+    // Prefer the tab that sent the message (content script button), otherwise
+    // fall back to the active tab of the last focused window (popup).
+    let tabId = sender.tab?.id
 
-    if (activeTabs.length === 1 && activeTabId !== undefined) {
-      await executeScriptByFlag(message.flag, activeTabId)
+    if (tabId === undefined) {
+      const activeTabs = await chrome.tabs.query({
+        lastFocusedWindow: true,
+        active: true,
+      })
+      tabId = activeTabs.at(0)?.id
+    }
+
+    if (tabId === undefined) {
+      return {
+        ok: false,
+        error: chrome.i18n.getMessage('script_inject_failed'),
+      }
+    }
+
+    try {
+      await executeScriptByFlag(flag, tabId)
+      return { ok: true }
+    } catch (error) {
+      console.error(error)
+      const detail = error instanceof Error ? error.message : String(error)
+      return {
+        ok: false,
+        error: `${chrome.i18n.getMessage('script_inject_failed')} (${detail})`,
+      }
     }
   }
 

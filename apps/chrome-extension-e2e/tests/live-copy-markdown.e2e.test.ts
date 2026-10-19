@@ -78,7 +78,7 @@ const createUserDataDir = async (): Promise<{
   }
 
   return {
-    path: await fs.mkdtemp(path.join(os.tmpdir(), 'cdc-extension-e2e-live-')),
+    path: await fs.mkdtemp(path.join(os.tmpdir(), 'docdownload-e2e-live-')),
     shouldCleanup: true,
   }
 }
@@ -119,7 +119,7 @@ for (const liveCase of liveCopyCases) {
       })
       await page.bringToFront()
 
-      const copyButton = page.locator('[data-CDC-button-type="copy"]')
+      const copyButton = page.locator('[data-docdownload-button-type="copy"]')
       await expect(copyButton).toBeVisible({
         timeout: 2 * 60 * 1000,
       })

@@ -1,4 +1,13 @@
 {
+  "extension_name": {
+    "message": "DocDownload"
+  },
+  "extension_description": {
+    "message": "将飞书云文档下载、复制为 Markdown"
+  },
+  "script_inject_failed": {
+    "message": "无法在此页面运行。请在文档标签页中打开扩展弹窗后重试。"
+  },
   "download_docx_as_markdown": {
     "message": "下载为 Markdown"
   },

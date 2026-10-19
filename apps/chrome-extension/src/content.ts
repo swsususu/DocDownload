@@ -36,7 +36,7 @@ const initButtons = (): void => {
   const render = () => {
     const style = document.createElement('style')
     style.innerHTML = `
-  [data-CDC-button-type] {
+  [data-docdownload-button-type] {
     position: fixed;
     display: flex;
     justify-content: center;
@@ -51,7 +51,7 @@ const initButtons = (): void => {
     z-index: 3;
   }
 
-  [data-CDC-button-type]:hover {
+  [data-docdownload-button-type]:hover {
     color: var(--colorful-blue);
   }
   `
@@ -111,7 +111,7 @@ const initButtons = (): void => {
     const buttons = operates.map<Button>(({ type, innerHtml, action }) => {
       const btn = document.createElement('button')
       btn.type = 'button'
-      btn.setAttribute('data-CDC-button-type', type)
+      btn.setAttribute('data-docdownload-button-type', type)
       btn.innerHTML = innerHtml
 
       btn.style.width = '36px'

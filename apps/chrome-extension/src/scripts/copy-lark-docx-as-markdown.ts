@@ -10,6 +10,8 @@ import {
   transformTableBySettings,
 } from '../common/utils'
 import { getSettings, SettingKey, Grid } from '../common/settings'
+import { detectPageKind, isUnsupportedKind } from '../common/page-kind'
+import { writeToClipboard } from '../common/clipboard'
 
 const enum TranslationKey {
   FAILED_TO_COPY_IMAGES = 'failed_to_copy_images',
@@ -17,6 +19,8 @@ const enum TranslationKey {
   CONTENT_LOADING = 'content_loading',
   NOT_SUPPORT = 'not_support',
   NOT_SUPPORT_DOC_1_0 = 'not_support_doc_1_0',
+  NOT_SUPPORT_PAGE_KIND = 'not_support_page_kind',
+  FAILED_TO_WRITE_CLIPBOARD = 'failed_to_write_clipboard',
 }
 
 i18next
@@ -33,6 +37,10 @@ i18next
             'This is not a lark document page and cannot be copied as Markdown',
           [TranslationKey.NOT_SUPPORT_DOC_1_0]:
             'This is a old version lark document page and cannot be copied as Markdown',
+          [TranslationKey.NOT_SUPPORT_PAGE_KIND]:
+            'Spreadsheets, bitables, mind notes and slides are not supported yet. Only lark documents (docx) are supported',
+          [TranslationKey.FAILED_TO_WRITE_CLIPBOARD]:
+            'Failed to write to clipboard. Please make sure the page is focused and clipboard permission is granted, then retry',
         },
         ...en,
       },
@@ -46,6 +54,10 @@ i18next
             '这不是一个飞书文档页面，无法复制为 Markdown',
           [TranslationKey.NOT_SUPPORT_DOC_1_0]:
             '这是一个旧版飞书文档页面，无法复制为 Markdown',
+          [TranslationKey.NOT_SUPPORT_PAGE_KIND]:
+            '暂不支持电子表格/多维表格/思维笔记/幻灯片页面，仅支持飞书文档（docx）',
+          [TranslationKey.FAILED_TO_WRITE_CLIPBOARD]:
+            '写入剪贴板失败，请确保页面处于聚焦状态并已授予剪贴板权限后重试',
         },
         ...zh,
       },
@@ -61,7 +73,13 @@ const main = async () => {
   }
 
   if (!docx.isDocx) {
-    Toast.warning({ content: i18next.t(TranslationKey.NOT_SUPPORT) })
+    Toast.warning({
+      content: i18next.t(
+        isUnsupportedKind(detectPageKind(window.location.href))
+          ? TranslationKey.NOT_SUPPORT_PAGE_KIND
+          : TranslationKey.NOT_SUPPORT,
+      ),
+    })
 
     return
   }
@@ -115,16 +133,16 @@ const main = async () => {
     }
   }
 
-  // clipboard.write() method may be intercepted and overridden by websites
-  const writeToClipboard = (
-    Object.getPrototypeOf(window.navigator.clipboard) as Clipboard
-  ).write.bind(window.navigator.clipboard)
+  try {
+    await writeToClipboard({ text: markdown })
+  } catch (error) {
+    console.error(error)
+    Toast.error({
+      content: i18next.t(TranslationKey.FAILED_TO_WRITE_CLIPBOARD),
+    })
 
-  await writeToClipboard([
-    new ClipboardItem({
-      'text/plain': new Blob([markdown], { type: 'text/plain' }),
-    }),
-  ])
+    return
+  }
 
   if (tokens.length > 0) {
     const isSuccess = await makePublicUrlEffective(

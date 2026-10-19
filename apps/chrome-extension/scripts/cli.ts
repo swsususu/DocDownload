@@ -124,7 +124,7 @@ const genManifest = async (options: BuildOptions) => {
 
     manifest.browser_specific_settings = {
       gecko: {
-        id: 'whale.4113@gmail.com',
+        id: 'docdownload@swsususu.github.io',
       },
     }
   }

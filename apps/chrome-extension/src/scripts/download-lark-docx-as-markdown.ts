@@ -14,8 +14,14 @@ import {
   UniqueFileName,
   withSignal,
   transformTableBySettings,
+  resolveImageName,
+  getErrorMessage,
+  degradeFailedFileLinks,
+  getProgressRatio,
+  loadPendingContent,
 } from '../common/utils'
 import { getSettings, Grid } from '../common/settings'
+import { detectPageKind, isUnsupportedKind } from '../common/page-kind'
 import { DownloadMethod, SettingKey } from '@/common/settings'
 
 configure({ useWebWorkers: false })
@@ -29,6 +35,7 @@ const enum TranslationKey {
   UNKNOWN_ERROR = 'unknown_error',
   NOT_SUPPORT = 'not_support',
   NOT_SUPPORT_DOC_1_0 = 'not_support_doc_1_0',
+  NOT_SUPPORT_PAGE_KIND = 'not_support_page_kind',
   DOWNLOADING_FILE = 'downloading_file',
   FAILED_TO_DOWNLOAD = 'failed_to_download',
   DOWNLOAD_PROGRESS = 'download_progress',
@@ -58,6 +65,8 @@ i18next
             'This is not a lark document page and cannot be downloaded as Markdown',
           [TranslationKey.NOT_SUPPORT_DOC_1_0]:
             'This is a old version lark document page and cannot be downloaded as Markdown',
+          [TranslationKey.NOT_SUPPORT_PAGE_KIND]:
+            'Spreadsheets, bitables, mind notes and slides are not supported yet. Only lark documents (docx) are supported',
           [TranslationKey.DOWNLOADING_FILE]:
             'Download {{name}} in: {{progress}}% (please do not refresh or close the page)',
           [TranslationKey.FAILED_TO_DOWNLOAD]: 'Failed to download {{name}}',
@@ -82,6 +91,8 @@ i18next
             '这不是一个飞书文档页面，无法下载为 Markdown',
           [TranslationKey.NOT_SUPPORT_DOC_1_0]:
             '这是一个旧版飞书文档页面，无法下载为 Markdown',
+          [TranslationKey.NOT_SUPPORT_PAGE_KIND]:
+            '暂不支持电子表格/多维表格/思维笔记/幻灯片页面，仅支持飞书文档（docx）',
           [TranslationKey.DOWNLOADING_FILE]:
             '下载 {{name}} 中：{{progress}}%（请不要刷新或关闭页面）',
           [TranslationKey.FAILED_TO_DOWNLOAD]: '下载 {{name}} 失败',
@@ -142,7 +153,10 @@ async function toBlob(
     chunks.push(value)
     receivedLength += value.length
 
-    onProgress?.(receivedLength / contentLength)
+    const ratio = getProgressRatio(receivedLength, contentLength)
+    if (ratio !== null) {
+      onProgress?.(ratio)
+    }
   }
 
   const blob = new Blob(chunks)
@@ -162,7 +176,7 @@ const downloadImage = async (
 
   const { signal, useUUID = false, markdownFileName = '' } = options
 
-  const { name: originName, fetchSources, fetchBlob } = image.data
+  const { name: rawName, token, fetchSources, fetchBlob } = image.data
 
   const result = await withSignal(
     async isAborted => {
@@ -193,20 +207,12 @@ const downloadImage = async (
         }
 
         // image
-        if (originName && fetchSources) {
+        if (fetchSources) {
           if (isAborted()) {
             return null
           }
           const sources = await fetchSources()
           if (!sources) return null
-
-          const baseName = markdownFileName
-            ? `${markdownFileName}-${originName}`
-            : originName
-          const name = useUUID
-            ? uniqueFileName.generateWithUUID(baseName)
-            : uniqueFileName.generate(baseName)
-          const filename = `images/${name}`
 
           const { src } = sources
           if (isAborted()) {
@@ -215,6 +221,19 @@ const downloadImage = async (
           const response = await fetch(src, {
             signal,
           })
+
+          const originName = resolveImageName({
+            name: rawName,
+            token,
+            mimeType: response.headers.get('Content-Type'),
+          })
+          const baseName = markdownFileName
+            ? `${markdownFileName}-${originName}`
+            : originName
+          const name = useUUID
+            ? uniqueFileName.generateWithUUID(baseName)
+            : uniqueFileName.generate(baseName)
+          const filename = `images/${name}`
 
           try {
             if (isAborted()) {
@@ -259,7 +278,7 @@ const downloadImage = async (
         if (!isAbortError) {
           Toast.error({
             content: i18next.t(TranslationKey.FAILED_TO_DOWNLOAD, {
-              name: originName,
+              name: resolveImageName({ name: rawName, token }),
             }),
             actionText: i18next.t(CommonTranslationKey.CONFIRM_REPORT_BUG, {
               ns: Namespace.COMMON,
@@ -459,6 +478,8 @@ const downloadFiles = async (
   return results ?? []
 }
 
+const EXTRA_LOAD_TIMEOUT = 45 * Second
+
 interface PrepareResult {
   isReady: boolean
   recoverScrollTop?: () => void
@@ -487,6 +508,7 @@ const prepare = async (): Promise<PrepareResult> => {
 
     const maxTryTimes = OneHundred
     let tryTimes = 0
+    const state = { cancelled: false }
 
     Toast.loading({
       content: i18next.t(TranslationKey.SCROLL_DOCUMENT),
@@ -494,6 +516,7 @@ const prepare = async (): Promise<PrepareResult> => {
       key: TranslationKey.SCROLL_DOCUMENT,
       actionText: i18next.t(TranslationKey.CANCEL),
       onActionClick: () => {
+        state.cancelled = true
         tryTimes = maxTryTimes
       },
     })
@@ -509,6 +532,17 @@ const prepare = async (): Promise<PrepareResult> => {
       tryTimes++
 
       top = docx.container?.scrollHeight ?? 0
+    }
+
+    // Long documents may still have pending blocks after scrolling to the
+    // bottom (#141): scroll through the document by viewport and locate the
+    // remaining pending blocks, bounded by an overall deadline.
+    if (!checkIsReady() && !state.cancelled) {
+      await loadPendingContent({
+        isReady: checkIsReady,
+        isCancelled: () => state.cancelled,
+        deadline: Date.now() + EXTRA_LOAD_TIMEOUT,
+      })
     }
 
     Toast.remove(TranslationKey.SCROLL_DOCUMENT)
@@ -530,7 +564,13 @@ const main = async (options: { signal?: AbortSignal } = {}) => {
   }
 
   if (!docx.isDocx) {
-    Toast.warning({ content: i18next.t(TranslationKey.NOT_SUPPORT) })
+    Toast.warning({
+      content: i18next.t(
+        isUnsupportedKind(detectPageKind(window.location.href))
+          ? TranslationKey.NOT_SUPPORT_PAGE_KIND
+          : TranslationKey.NOT_SUPPORT,
+      ),
+    })
 
     throw new Error(DOWNLOAD_ABORTED)
   }
@@ -642,6 +682,8 @@ const main = async (options: { signal?: AbortSignal } = {}) => {
         zipFs.addBlob(filename, content)
       })
 
+      degradeFailedFileLinks(files)
+
       transformTableBySettings(tableWithParents, settings)
 
       const markdown = Docx.stringify(root)
@@ -712,7 +754,10 @@ if (runningWindow[RUNNING_FLAG]) {
       } else {
         Toast.error({
           key: ToastKey.REPORT_BUG,
-          content: String(error),
+          content: getErrorMessage(
+            error,
+            i18next.t(TranslationKey.UNKNOWN_ERROR),
+          ),
           actionText: i18next.t(CommonTranslationKey.CONFIRM_REPORT_BUG, {
             ns: Namespace.COMMON,
           }),

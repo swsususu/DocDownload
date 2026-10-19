@@ -2,13 +2,14 @@ import { toHast } from 'mdast-util-to-hast'
 import { toHtml } from 'hast-util-to-html'
 import {
   Docx,
+  docx,
   type TableWithParent,
   type mdast,
   type hast,
   BlockType,
 } from '@dolphin/lark'
 import { v4 as uuidv4 } from 'uuid'
-import { Second, waitForFunction } from '@dolphin/common'
+import { Second, waitFor, waitForFunction } from '@dolphin/common'
 import {
   SettingKey,
   Table as TableSetting,
@@ -388,4 +389,142 @@ export const transformTableBySettings = (
       allowDangerousHtml: true,
     },
   )
+}
+
+const IMAGE_MIME_TO_EXT: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/pjpeg': 'jpg',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'image/svg+xml': 'svg',
+  'image/bmp': 'bmp',
+  'image/tiff': 'tiff',
+  'image/avif': 'avif',
+  'image/heic': 'heic',
+  'image/x-icon': 'ico',
+  'image/vnd.microsoft.icon': 'ico',
+}
+
+/**
+ * Resolves a file name for an image. Some images have no `name` in their
+ * block snapshot (#63); fall back to `image-{token}.{ext}` so they are not
+ * dropped. `ext` is inferred from `mimeType` and defaults to `png`.
+ */
+export const resolveImageName = (options: {
+  name?: string | null
+  token?: string | null
+  mimeType?: string | null
+}): string => {
+  const name = options.name?.trim()
+  if (name) return name
+
+  const mime = (options.mimeType ?? '').split(';')[0].trim().toLowerCase()
+  const ext = IMAGE_MIME_TO_EXT[mime] ?? 'png'
+  const token = (options.token ?? '').replace(/[^\w-]/g, '_')
+
+  return token ? `image-${token}.${ext}` : `image.${ext}`
+}
+
+/**
+ * `String(error)` can be empty (e.g. `new Error('')` stringifies to `Error`,
+ * but `''`, `{ toString: () => '' }` and the like do not); use a fallback then.
+ */
+export const getErrorMessage = (error: unknown, fallback: string): string => {
+  let message = ''
+  try {
+    message = String(error).trim()
+  } catch {
+    // ignore
+  }
+
+  return message || fallback
+}
+
+/**
+ * Downloading a file may fail (e.g. 403). Such links have an empty url and
+ * would be stringified as `[name]()`; degrade them to plain text instead.
+ */
+export const degradeFailedFileLinks = (files: mdast.Link[]): void => {
+  for (const file of files) {
+    if (file.url) continue
+
+    const text = file.data?.name ?? ''
+    const node = file as unknown as Record<string, unknown>
+
+    for (const key of Object.keys(node)) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete node[key]
+    }
+    node['type'] = 'text'
+    node['value'] = text
+  }
+}
+
+/**
+ * Progress ratio in [0, 1], or `null` when the total size is unknown.
+ */
+export const getProgressRatio = (
+  received: number,
+  total: number,
+): number | null => {
+  if (!Number.isFinite(total) || total <= 0) return null
+
+  return Math.min(Math.max(received / total, 0), 1)
+}
+
+const LOCATE_BLOCK_TIMEOUT = 3 * Second
+const SCROLL_STEP_INTERVAL = 0.3 * Second
+
+/**
+ * Extra passes to load content of long documents when scrolling to the bottom
+ * was not enough (#141): scroll from top to bottom by viewport-sized steps,
+ * then locate each pending / fallback-whiteboard top-level block.
+ * Stops as soon as `isReady()` is true, `isCancelled()` is true or `deadline`
+ * (epoch ms) is reached.
+ */
+export const loadPendingContent = async (options: {
+  isReady: () => boolean
+  isCancelled: () => boolean
+  deadline: number
+}): Promise<void> => {
+  const { isReady, isCancelled, deadline } = options
+
+  const shouldStop = () => isReady() || isCancelled() || Date.now() >= deadline
+
+  if (shouldStop()) return
+
+  const container = docx.container
+  if (container) {
+    const step = Math.max(container.clientHeight, 300)
+
+    for (let top = 0; top < container.scrollHeight; top += step) {
+      if (shouldStop()) return
+
+      docx.scrollTo({ top, behavior: 'instant' })
+
+      await waitFor(SCROLL_STEP_INTERVAL)
+    }
+  }
+
+  const children = docx.rootBlock?.children ?? []
+  for (const block of children) {
+    if (shouldStop()) return
+
+    const isPending = block.snapshot.type === 'pending'
+    const isFallbackWhiteboard =
+      block.type === BlockType.FALLBACK &&
+      block.snapshot.type === BlockType.WHITEBOARD
+
+    const recordId = block.record?.id
+    if (!recordId || !(isPending || isFallbackWhiteboard)) continue
+
+    await Promise.race([
+      Docx.locateBlockWithRecordId(recordId),
+      waitFor(LOCATE_BLOCK_TIMEOUT),
+    ])
+
+    await waitFor(SCROLL_STEP_INTERVAL)
+  }
 }

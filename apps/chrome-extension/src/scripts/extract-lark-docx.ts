@@ -10,6 +10,11 @@ import {
   UniqueFileName,
   withSignal,
   transformTableBySettings,
+  resolveImageName,
+  getErrorMessage,
+  degradeFailedFileLinks,
+  getProgressRatio,
+  loadPendingContent,
 } from '../common/utils'
 import { getSettings, Grid } from '../common/settings'
 import { SettingKey } from '@/common/settings'
@@ -135,8 +140,9 @@ async function toBlob(
     chunks.push(value)
     receivedLength += value.length
 
-    if (contentLength > 0) {
-      onProgress?.(receivedLength / contentLength)
+    const ratio = getProgressRatio(receivedLength, contentLength)
+    if (ratio !== null) {
+      onProgress?.(ratio)
     }
   }
 
@@ -177,7 +183,7 @@ const downloadImage = async (
 
   const { signal, useUUID = false, markdownFileName = '' } = options
 
-  const { name: originName, fetchSources, fetchBlob } = image.data
+  const { name: rawName, token, fetchSources, fetchBlob } = image.data
 
   const result = await withSignal(
     async isAborted => {
@@ -208,20 +214,12 @@ const downloadImage = async (
         }
 
         // image
-        if (originName && fetchSources) {
+        if (fetchSources) {
           if (isAborted()) {
             return null
           }
           const sources = await fetchSources()
           if (!sources) return null
-
-          const baseName = markdownFileName
-            ? `${markdownFileName}-${originName}`
-            : originName
-          const name = useUUID
-            ? uniqueFileName.generateWithUUID(baseName)
-            : uniqueFileName.generate(baseName)
-          const filename = `images/${name}`
 
           const { src } = sources
           if (isAborted()) {
@@ -230,6 +228,19 @@ const downloadImage = async (
           const response = await fetch(src, {
             signal,
           })
+
+          const originName = resolveImageName({
+            name: rawName,
+            token,
+            mimeType: response.headers.get('Content-Type'),
+          })
+          const baseName = markdownFileName
+            ? `${markdownFileName}-${originName}`
+            : originName
+          const name = useUUID
+            ? uniqueFileName.generateWithUUID(baseName)
+            : uniqueFileName.generate(baseName)
+          const filename = `images/${name}`
 
           try {
             if (isAborted()) {
@@ -274,7 +285,7 @@ const downloadImage = async (
         if (!isAbortError) {
           Toast.error({
             content: i18next.t(TranslationKey.FAILED_TO_DOWNLOAD, {
-              name: originName,
+              name: resolveImageName({ name: rawName, token }),
             }),
             actionText: i18next.t(CommonTranslationKey.CONFIRM_REPORT_BUG, {
               ns: Namespace.COMMON,
@@ -463,6 +474,8 @@ const downloadFiles = async (
   return results ?? []
 }
 
+const EXTRA_LOAD_TIMEOUT = 45 * Second
+
 interface PrepareResult {
   isReady: boolean
   recoverScrollTop?: () => void
@@ -491,6 +504,7 @@ const prepare = async (): Promise<PrepareResult> => {
 
     const maxTryTimes = OneHundred
     let tryTimes = 0
+    const state = { cancelled: false }
 
     Toast.loading({
       content: i18next.t(TranslationKey.SCROLL_DOCUMENT),
@@ -498,6 +512,7 @@ const prepare = async (): Promise<PrepareResult> => {
       key: TranslationKey.SCROLL_DOCUMENT,
       actionText: i18next.t(TranslationKey.CANCEL),
       onActionClick: () => {
+        state.cancelled = true
         tryTimes = maxTryTimes
       },
     })
@@ -513,6 +528,17 @@ const prepare = async (): Promise<PrepareResult> => {
       tryTimes++
 
       top = docx.container?.scrollHeight ?? 0
+    }
+
+    // Long documents may still have pending blocks after scrolling to the
+    // bottom (#141): scroll through the document by viewport and locate the
+    // remaining pending blocks, bounded by an overall deadline.
+    if (!checkIsReady() && !state.cancelled) {
+      await loadPendingContent({
+        isReady: checkIsReady,
+        isCancelled: () => state.cancelled,
+        deadline: Date.now() + EXTRA_LOAD_TIMEOUT,
+      })
     }
 
     Toast.remove(TranslationKey.SCROLL_DOCUMENT)
@@ -627,6 +653,8 @@ const main = async (options: { signal?: AbortSignal } = {}) => {
 
   const downloadedAssets = results.flat(1)
 
+  degradeFailedFileLinks(files)
+
   transformTableBySettings(tableWithParents, settings)
 
   const markdown = Docx.stringify(root)
@@ -688,7 +716,10 @@ main({
     } else {
       Toast.error({
         key: ToastKey.REPORT_BUG,
-        content: String(error),
+        content: getErrorMessage(
+          error,
+          i18next.t(TranslationKey.UNKNOWN_ERROR),
+        ),
         actionText: i18next.t(CommonTranslationKey.CONFIRM_REPORT_BUG, {
           ns: Namespace.COMMON,
         }),

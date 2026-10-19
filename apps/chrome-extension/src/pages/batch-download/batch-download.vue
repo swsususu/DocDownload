@@ -658,7 +658,7 @@ const packageZip = async () => {
     const url = URL.createObjectURL(zipBlob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `CDC-Batch-Export-${new Date().toISOString().slice(0, 10)}.zip`
+    a.download = `DocDownload-Batch-Export-${new Date().toISOString().slice(0, 10)}.zip`
     a.click()
     URL.revokeObjectURL(url)
 
@@ -809,7 +809,7 @@ const handleExportState = () => {
     const a = document.createElement('a')
     const dateStr = new Date().toISOString().slice(0, 10)
     a.href = url
-    a.download = `cdc-explorer-state-${dateStr}.json`
+    a.download = `docdownload-explorer-state-${dateStr}.json`
     a.click()
     URL.revokeObjectURL(url)
 

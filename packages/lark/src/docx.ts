@@ -513,6 +513,78 @@ interface NotSupportedBlock extends Block {
   children: []
 }
 
+/**
+ * @description Block types that are reported as an unsupported placeholder
+ * instead of being silently dropped.
+ */
+const UNSUPPORTED_PLACEHOLDER_TYPES: ReadonlySet<BlockType> = new Set([
+  BlockType.BITABLE,
+  BlockType.CHAT_CARD,
+  BlockType.MINDNOTE,
+  BlockType.SHEET,
+])
+
+/**
+ * @description Block types that transform (and thus own) their children via
+ * `transformParentBlock`, or deliberately ignore them (code), so `flatChildren`
+ * must not expand them.
+ */
+const SELF_NESTING_BLOCK_TYPES: ReadonlySet<BlockType> = new Set([
+  BlockType.PAGE,
+  BlockType.CODE,
+  BlockType.QUOTE_CONTAINER,
+  BlockType.CALLOUT,
+  BlockType.BULLET,
+  BlockType.ORDERED,
+  BlockType.TODO,
+  BlockType.TABLE,
+  BlockType.GRID,
+  BlockType.GRID_COLUMN,
+  BlockType.CELL,
+  BlockType.VIEW,
+])
+
+interface CodeSnapshotFields {
+  language?: string
+  text?: {
+    initialAttributedTexts?: {
+      text?: Record<string, unknown> | string | null
+    }
+  }
+}
+
+const getSnapshotCodeText = (snapshot: CodeSnapshotFields): string => {
+  const text = snapshot.text?.initialAttributedTexts?.text
+  if (!text) return ''
+  if (typeof text === 'string') return text
+
+  return Object.keys(text)
+    .sort((a, b) => Number(a) - Number(b))
+    .map(key => text[key])
+    .filter(isString)
+    .join('')
+}
+
+const codeBlockToCode = (block: Block & { language?: string }): mdast.Code => {
+  const snapshot = block.snapshot as BlockSnapshot & CodeSnapshotFields
+  const language = isNonEmptyString(block.language)
+    ? block.language
+    : (snapshot.language ?? '')
+  const allText = block.zoneState?.allText
+  const text = isNonEmptyString(allText)
+    ? allText
+    : getSnapshotCodeText(snapshot)
+
+  return {
+    type: 'code',
+    lang: language.toLocaleLowerCase(),
+    value: trimEndEnter(text),
+  }
+}
+
+const isNonEmptyString = (value: unknown): value is string =>
+  isString(value) && value.length > 0
+
 type Blocks =
   | PageBlock
   | DividerBlock
@@ -1300,6 +1372,15 @@ export class Transformer {
             )
           }
 
+          // leaf / unknown blocks do not transform their own children, so
+          // expand them here instead of dropping them
+          if (
+            !SELF_NESTING_BLOCK_TYPES.has(child.type) &&
+            child.children.length
+          ) {
+            return [child, ...flatChildren(child.children)]
+          }
+
           return child
         })
         .flat(1)
@@ -1390,12 +1471,7 @@ export class Transformer {
         return heading
       }
       case BlockType.CODE: {
-        const code: mdast.Code = {
-          type: 'code',
-          lang: block.language.toLocaleLowerCase(),
-          value: trimEndEnter(block.zoneState?.allText ?? ''),
-        }
-        return code
+        return codeBlockToCode(block)
       }
       case BlockType.QUOTE_CONTAINER:
       case BlockType.CALLOUT: {
@@ -1739,8 +1815,26 @@ export class Transformer {
 
         return null
       }
-      default:
+      default: {
+        if (UNSUPPORTED_PLACEHOLDER_TYPES.has(block.type)) {
+          const paragraph: mdast.Paragraph = {
+            type: 'paragraph',
+            children: [
+              { type: 'text', value: `[Unsupported block: ${block.type}]` },
+            ],
+          }
+          return paragraph
+        }
+
+        if (
+          block.type === BlockType.FALLBACK &&
+          block.snapshot.type === BlockType.CODE
+        ) {
+          return codeBlockToCode(block)
+        }
+
         return null
+      }
     }
   }
 

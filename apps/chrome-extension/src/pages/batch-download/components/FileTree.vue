@@ -368,7 +368,7 @@ provide(DragDropKey, {
       <h3
         class="font-medium text-sm text-foreground/80 flex items-center gap-1.5"
       >
-        CDC EXPLORER
+        DOCDOWNLOAD EXPLORER
       </h3>
       <div class="flex items-center gap-1">
         <button

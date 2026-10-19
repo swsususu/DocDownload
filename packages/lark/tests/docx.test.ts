@@ -2,6 +2,7 @@ import { test, describe, expect, it } from 'vitest'
 import type * as mdast from 'mdast'
 import {
   BlockType,
+  Docx,
   Transformer,
   mergeListItems,
   mergePhrasingContents,
@@ -965,6 +966,150 @@ describe('transformer.transform()', () => {
         ],
       }
       expect(root).toStrictEqual(expectedRoot)
+    })
+
+    test('fallback to snapshot text when zoneState is missing', () => {
+      const { root } = transformer.transform({
+        type: BlockType.PAGE,
+        snapshot: {
+          type: BlockType.PAGE,
+        },
+        children: [
+          {
+            type: BlockType.CODE,
+            language: 'Python',
+            snapshot: {
+              type: BlockType.CODE,
+              text: {
+                initialAttributedTexts: {
+                  text: { 1: 'b\n', 0: 'a = 1\n' },
+                },
+              },
+            },
+            zoneState: null,
+            children: [],
+          },
+        ],
+      } as never)
+      const expectedRoot: mdast.Root = {
+        type: 'root',
+        children: [{ type: 'code', lang: 'python', value: 'a = 1\nb' }],
+      }
+      expect(root).toStrictEqual(expectedRoot)
+    })
+
+    test('fallback block with code snapshot', () => {
+      const { root } = transformer.transform({
+        type: BlockType.PAGE,
+        snapshot: {
+          type: BlockType.PAGE,
+        },
+        children: [
+          {
+            type: BlockType.FALLBACK,
+            snapshot: {
+              type: BlockType.CODE,
+              language: 'Go',
+              text: {
+                initialAttributedTexts: { text: { 0: 'package main' } },
+              },
+            },
+            zoneState: null,
+            children: [],
+          },
+        ],
+      } as never)
+      const expectedRoot: mdast.Root = {
+        type: 'root',
+        children: [{ type: 'code', lang: 'go', value: 'package main' }],
+      }
+      expect(root).toStrictEqual(expectedRoot)
+    })
+  })
+
+  describe('nested children of leaf blocks', () => {
+    test('children of unknown leaf block are expanded', () => {
+      const { root } = transformer.transform({
+        type: BlockType.PAGE,
+        snapshot: {
+          type: BlockType.PAGE,
+        },
+        children: [
+          {
+            type: BlockType.FALLBACK,
+            snapshot: { type: BlockType.FALLBACK },
+            children: [
+              {
+                type: BlockType.TEXT,
+                snapshot: { type: BlockType.TEXT },
+                zoneState: {
+                  allText: 'nested',
+                  content: { ops: [{ insert: 'nested' }] },
+                },
+                children: [],
+              },
+            ],
+          },
+        ],
+      } as never)
+      const expectedRoot: mdast.Root = {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [{ type: 'text', value: 'nested' }],
+          },
+        ],
+      }
+      expect(root).toStrictEqual(expectedRoot)
+    })
+  })
+
+  describe('unsupported blocks', () => {
+    test('placeholder for sheet', () => {
+      const { root } = transformer.transform({
+        type: BlockType.PAGE,
+        snapshot: {
+          type: BlockType.PAGE,
+        },
+        children: [
+          {
+            type: BlockType.SHEET,
+            snapshot: { type: BlockType.SHEET },
+            children: [],
+          },
+        ],
+      } as never)
+      const expectedRoot: mdast.Root = {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [{ type: 'text', value: '[Unsupported block: sheet]' }],
+          },
+        ],
+      }
+      expect(root).toStrictEqual(expectedRoot)
+      expect(Docx.stringify(expectedRoot)).toBe(
+        '\\[Unsupported block: sheet]\n',
+      )
+    })
+
+    test('other unknown blocks are still dropped', () => {
+      const { root } = transformer.transform({
+        type: BlockType.PAGE,
+        snapshot: {
+          type: BlockType.PAGE,
+        },
+        children: [
+          {
+            type: BlockType.FALLBACK,
+            snapshot: { type: BlockType.FALLBACK },
+            children: [],
+          },
+        ],
+      } as never)
+      expect(root).toStrictEqual({ type: 'root', children: [] })
     })
   })
 
